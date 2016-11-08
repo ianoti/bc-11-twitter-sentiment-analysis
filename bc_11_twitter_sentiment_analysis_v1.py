@@ -4,7 +4,16 @@ import json
 from requests_oauthlib import OAuth1
 import sqlite3
 
+#----------------------
+# The authentication tokens are handled here
+#-----------------------
 
+auth = OAuth1(bc_11_access_credentials.credentials["consumer_key"], bc_11_access_credentials.credentials["consumer_secret"],
+				bc_11_access_credentials.credentials["access_token"], bc_11_access_credentials.credentials["access_token_secret"])
+
+#--------------------------
+# The database is created here using sqlite3
+#--------------------------
 conn = sqlite3.connect("twitter_tweets.db")
 conn.execute('''CREATE TABLE IF NOT EXISTS Twitter
 			(TWEET_KEY text PRIMARY KEY NOT NULL,
@@ -14,49 +23,105 @@ conn.execute('''CREATE TABLE IF NOT EXISTS Twitter
 			);''')
 conn.close()
 
-url_authenticate = "https://api.twitter.com/1.1/account/verify_credentials.json"
-auth = OAuth1(bc_11_access_credentials.credentials["consumer_key"], bc_11_access_credentials.credentials["consumer_secret"],
-				bc_11_access_credentials.credentials["access_token"], bc_11_access_credentials.credentials["access_token_secret"])
-auth_status = requests.get(url_authenticate, auth=auth)
-print ("The HTTP response code for the authorisation check is:",auth_status.status_code)
+#----------------------------
+# This function holds the user interface for interaction with the program
+#----------------------------
+def interface():
+	print ("What do you want\n1. Retrieve some tweets\n2. View all archived tweets\n3. View the status of the authentication",
+		"\n4. Delete all tweets of a user\n5. View tweets of a user\n9. Exit the application\n")
+	option = input("Please enter your choice: ")
+	if option == "1":
+		user_name = input("Please provide me with a twitter handle without the @ e.g oti_ian instead of @oti_ian\n")
+		tweet_number = input("Please give the number of most recent tweets you want to receive\n")
+		tweet_get(user_name,tweet_number)		
+		interface()
 
-user_name = input("Please provide me with a twitter handle without the @ e.g oti_ian instead of @oti_ian")
-tweet_number = input("Please give the number of most recent tweets you want to receive")
-url_tweets = "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name="+user_name+"&count="+tweet_number+""
-tweet = requests.get(url_tweets, auth=auth)
-tweet_json = tweet.json()
+	elif option == "2":
+		tweet_print_all()
+		interface()
+
+	elif option == "3":
+		authenticate_token()
+		interface()
+
+	elif option == "4":
+		user_name = input("give the twitter handle of the user whose tweets you want to delete\n")
+		remove_tweets(user_name)
+		interface()
+
+	elif option == "5":
+		user_name = input("give the twitter handle of the user whose tweets you want to view\n")
+		see_tweets(user_name)
+		interface()
+		
+	elif option == "9":
+		print("The program has closed, Bye Bye")
+		exit()
+
+#--------------------------------
+# This function retrieves tweets of a specified user of a specified number of tweets
+#--------------------------------
+def tweet_get(user_name, tweet_number):
+	url_tweets = "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name="+user_name+"&count="+tweet_number+""
+	tweet = requests.get(url_tweets, auth=auth)
+	tweet_json = tweet.json()
+	conn = sqlite3.connect("twitter_tweets.db")
+	for i in range(0,len(tweet_json)):
+		tweet_user = tweet_json[i]["user"]["screen_name"]
+		tweet_id = tweet_json[i]["id_str"]
+		tweet_text = tweet_json[i]["text"]
+		tweet_textenc = tweet_text.encode("utf-8", "ignore") #this encodes the text as utf-8 as is received from Twitter
+		conn.execute("INSERT OR IGNORE INTO Twitter(TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT) VALUES(?, ?, ?);", (tweet_id, tweet_user, tweet_textenc))
+		conn.commit()
+	conn.close()
+
+#---------------------------------
+# This function prints out all the archived tweets in the database
+#-------------------------------------
+def tweet_print_all():
+	conn = sqlite3.connect("twitter_tweets.db")
+	cursor = conn.execute("SELECT TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT from Twitter")
+	print (cursor.fetchall())
+	conn.close()
+
+#------------------------------
+# This function confirms the authentication of the access tokens
+#------------------------------
+def authenticate_token():
+	url_authenticate = "https://api.twitter.com/1.1/account/verify_credentials.json"
+	auth_status = requests.get(url_authenticate, auth=auth)
+	print ("The HTTP response code for the authorisation check is:",auth_status.status_code)
+
+#---------------------------
+# this function deletes archived tweets matching a user name
+#---------------------------
+def remove_tweets(user_name):
+	conn = sqlite3.connect("twitter_tweets.db")
+	cursor = conn.cursor()
+	cursor.execute("DELETE FROM Twitter WHERE TWEET_SCREEN_NAME=:who", {"who": user_name})
+	conn.commit()
+	conn.close()
+
+#---------------------------
+# this function will return the tweets saved from a particular user
+#---------------------------
+def see_tweets(user_name):
+	conn = sqlite3.connect("twitter_tweets.db")
+	cursor = conn.cursor()
+	cursor.execute("SELECT * FROM Twitter WHERE TWEET_SCREEN_NAME=:who", {"who": user_name})
+	print (cursor.fetchall())
+	conn.close()
+
+
+#---------------------
+# The User interface is initialised
+#----------------------
+
+interface()
+
+#----------------------
+# This section holds miscellaneous comments
+# That help with keeping some code handy
+#------------------------
 # print(json.dumps(tweet_json, sort_keys=True,
 		# indent = 4, separators=(",",":"))) #this prints the formatted JSON response from Twitter API
-total_tweet = []
-total_user = []
-total_id = []
-conn = sqlite3.connect("twitter_tweets.db")
-for i in range(0,len(tweet_json)):
-	tweet_user = tweet_json[i]["user"]["screen_name"]
-	total_user.append(tweet_user)
-
-	tweet_id = tweet_json[i]["id_str"]
-	total_id.append(tweet_id)
-
-	tweet_text = tweet_json[i]["text"]
-	tweet_textenc = tweet_text.encode("utf-8", "ignore") #this encodes the text as utf-8 as is received from Twitter
-	total_tweet.append(tweet_text)
-	conn.execute("INSERT OR IGNORE INTO Twitter(TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT) VALUES(?, ?, ?);", (tweet_id, tweet_user, tweet_textenc))
-	conn.commit()
-
-cursor = conn.execute("SELECT TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT from Twitter")
-for row in cursor:
-	print("tweet_ID = ", row[0])
-	print("tweet_UserName = ", row[1])
-	print("tweet_Text = ", row[2], "\n")
-conn.close
-
-
-
-all_tweet_text = " ".join(total_tweet)
-print (all_tweet_text)
-print (total_id)
-print (total_user)
-#-----------------------------
-#this section deals with the database
-#-------------------------------

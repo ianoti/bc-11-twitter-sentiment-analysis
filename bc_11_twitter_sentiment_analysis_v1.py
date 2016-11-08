@@ -7,9 +7,11 @@ import sqlite3
 
 conn = sqlite3.connect("twitter_tweets.db")
 conn.execute('''CREATE TABLE IF NOT EXISTS Twitter
-		(TWEET_KEY text NOT NULL,
+			(TWEET_KEY text PRIMARY KEY NOT NULL,
 			TWEET_SCREEN_NAME text NOT NULL,
-			TWEET_CONTENT text NOT NULL);''')
+			TWEET_CONTENT text NOT NULL,
+			UNIQUE(TWEET_KEY,TWEET_CONTENT)
+			);''')
 conn.close()
 
 url_authenticate = "https://api.twitter.com/1.1/account/verify_credentials.json"
@@ -39,7 +41,7 @@ for i in range(0,len(tweet_json)):
 	tweet_text = tweet_json[i]["text"]
 	tweet_textenc = tweet_text.encode("utf-8", "ignore") #this encodes the text as utf-8 as is received from Twitter
 	total_tweet.append(tweet_text)
-	conn.execute("INSERT INTO Twitter VALUES(?, ?, ?);", (tweet_id, tweet_user, tweet_textenc))
+	conn.execute("INSERT OR IGNORE INTO Twitter(TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT) VALUES(?, ?, ?);", (tweet_id, tweet_user, tweet_textenc))
 	conn.commit()
 
 cursor = conn.execute("SELECT TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT from Twitter")

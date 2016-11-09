@@ -1,11 +1,10 @@
 import requests
 import bc_11_access_credentials
-import bc_11_stopwords
+from bc_11_stopwords import stopwords
 import json
 from requests_oauthlib import OAuth1
 import sqlite3
 import itertools
-from tabulate import tabulate
 
 #----------------------
 # The authentication tokens are handled here
@@ -62,8 +61,13 @@ def interface():
 
 	elif option == "6":
 		user_name = input("give the twitter handle of the user whose tweets you want to word count\n")
-		formatted_tweet = tweet_word_count(user_name)
-		print(formatted_tweet) # the tweets have been broken up into a list of words with punctuations eliminated
+		tweet_word_list_count = tweet_word_count(user_name)
+		print(tweet_word_list_count) # the tweets have been broken up into a list of words with punctuations eliminated and stop words removed
+		
+		aux = [(tweet_word_list_count[key], key) for key in tweet_word_list_count]
+		aux.sort()
+		aux.reverse()
+		print(aux)
 		interface()
 		
 	elif option == "9":
@@ -93,9 +97,11 @@ def tweet_get(user_name, tweet_number):
 def tweet_print_all():
 	conn = sqlite3.connect("twitter_tweets.db")
 	cursor = conn.execute("SELECT TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT from Twitter")
-	# table = cursor.fetchall()
+	table = cursor.fetchall()
 	# print (tabulate(table)) #pending debugging for pretty print of tables
-	print (cursor.fetchall())
+	for i in range(0,len(table)):
+		print(table[i])
+	print(type(table))
 	conn.close()
 
 #------------------------------
@@ -137,14 +143,28 @@ def tweet_word_count(user_name):
 	text_of_tweets = see_tweets(user_name)
 	text_of_tweets_normalised = text_of_tweets.lower()
 	tweet_words = removeNonAlphaNum(text_of_tweets_normalised)
-	return tweet_words
+	reduced_tweet = remove_stop_words(tweet_words, stopwords)
+	count_of_words_in_tweet = {}
+	for some_text in reduced_tweet:
+		if some_text in count_of_words_in_tweet:
+			count_of_words_in_tweet[some_text] += 1
+		else:
+			count_of_words_in_tweet[some_text] = 1
+	return count_of_words_in_tweet
 
 #----------------------------------
-# this function will clean up the tweets to remove punctuation
+# this function will clean up the tweets to remove punctuation and replace with whitespace
 #-----------------------------------
 def removeNonAlphaNum(text_of_tweets_normalised):
 	import re
-	return re.compile(r'\W+', re.UNICODE).split(text_of_tweets_normalised)
+	return re.sub("[, ( ) ]", " ", text_of_tweets_normalised)
+
+#--------------------------------
+# This function removes the stop words using a list stored in separate file
+#--------------------------------
+def remove_stop_words(tweet_words, stopwords):
+	individual_words = tweet_words.split()
+	return [w for w in individual_words if not (w in stopwords)]
 #---------------------
 # The User interface is initialised
 #----------------------

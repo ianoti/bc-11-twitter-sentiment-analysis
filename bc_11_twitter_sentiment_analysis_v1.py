@@ -3,6 +3,7 @@ import bc_11_access_credentials
 import json
 from requests_oauthlib import OAuth1
 import sqlite3
+import itertools
 from tabulate import tabulate
 
 #----------------------
@@ -17,7 +18,6 @@ auth = OAuth1(bc_11_access_credentials.credentials["consumer_key"], bc_11_access
 #--------------------------
 
 conn = sqlite3.connect("twitter_tweets.db")
-# conn.execute(PRAGMA encoding = "UTF-8";)
 conn.execute('''CREATE TABLE IF NOT EXISTS Twitter
 			(TWEET_KEY text PRIMARY KEY NOT NULL,
 			TWEET_SCREEN_NAME text NOT NULL,
@@ -55,7 +55,8 @@ def interface():
 
 	elif option == "5":
 		user_name = input("give the twitter handle of the user whose tweets you want to view\n")
-		see_tweets(user_name)
+		text_of_tweets = see_tweets(user_name)
+		print(text_of_tweets)
 		interface()
 		
 	elif option == "9":
@@ -115,8 +116,12 @@ def see_tweets(user_name):
 	conn = sqlite3.connect("twitter_tweets.db")
 	cursor = conn.cursor()
 	cursor.execute("SELECT TWEET_CONTENT FROM Twitter WHERE TWEET_SCREEN_NAME=:who", {"who": user_name})
-	print (list(cursor.fetchall()))
+	tweet_holder = cursor.fetchall()
+	user_tweets = list(itertools.chain(*tweet_holder))
+	user_tweet_text = b" ".join(user_tweets) #the stuff in database is stored as byte string, this code strings all the tweets together
+	user_tweet_english = user_tweet_text.decode("utf-8")
 	conn.close()
+	return user_tweet_english
 
 
 #---------------------

@@ -1,5 +1,6 @@
 import requests
 import bc_11_access_credentials
+import bc_11_stopwords
 import json
 from requests_oauthlib import OAuth1
 import sqlite3
@@ -31,7 +32,7 @@ conn.close()
 #----------------------------
 def interface():
 	print ("What do you want\n1. Retrieve some tweets\n2. View all archived tweets\n3. View the status of the authentication",
-		"\n4. Delete all tweets of a user\n5. View tweets of a user"
+		"\n4. Delete all tweets of a user\n5. View tweets of a user\n6. Count words in tweets of a user"
 		"\n9. Exit the application\n")
 	option = input("Please enter your choice: ")
 	if option == "1":
@@ -57,6 +58,12 @@ def interface():
 		user_name = input("give the twitter handle of the user whose tweets you want to view\n")
 		text_of_tweets = see_tweets(user_name)
 		print(text_of_tweets)
+		interface()
+
+	elif option == "6":
+		user_name = input("give the twitter handle of the user whose tweets you want to word count\n")
+		formatted_tweet = tweet_word_count(user_name)
+		print(formatted_tweet) # the tweets have been broken up into a list of words with punctuations eliminated
 		interface()
 		
 	elif option == "9":
@@ -121,9 +128,23 @@ def see_tweets(user_name):
 	user_tweet_text = b" ".join(user_tweets) #the stuff in database is stored as byte string, this code strings all the tweets together
 	user_tweet_english = user_tweet_text.decode("utf-8")
 	conn.close()
-	return user_tweet_english
+	return str(user_tweet_english)
 
+#-------------------------------
+# this function will count the number of words in the tweet
+#-------------------------------
+def tweet_word_count(user_name):
+	text_of_tweets = see_tweets(user_name)
+	text_of_tweets_normalised = text_of_tweets.lower()
+	tweet_words = removeNonAlphaNum(text_of_tweets_normalised)
+	return tweet_words
 
+#----------------------------------
+# this function will clean up the tweets to remove punctuation
+#-----------------------------------
+def removeNonAlphaNum(text_of_tweets_normalised):
+	import re
+	return re.compile(r'\W+', re.UNICODE).split(text_of_tweets_normalised)
 #---------------------
 # The User interface is initialised
 #----------------------

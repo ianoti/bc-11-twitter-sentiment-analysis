@@ -3,6 +3,7 @@ import bc_11_access_credentials
 import json
 from requests_oauthlib import OAuth1
 import sqlite3
+from tabulate import tabulate
 
 #----------------------
 # The authentication tokens are handled here
@@ -14,7 +15,9 @@ auth = OAuth1(bc_11_access_credentials.credentials["consumer_key"], bc_11_access
 #--------------------------
 # The database is created here using sqlite3
 #--------------------------
+
 conn = sqlite3.connect("twitter_tweets.db")
+# conn.execute(PRAGMA encoding = "UTF-8";)
 conn.execute('''CREATE TABLE IF NOT EXISTS Twitter
 			(TWEET_KEY text PRIMARY KEY NOT NULL,
 			TWEET_SCREEN_NAME text NOT NULL,
@@ -28,7 +31,8 @@ conn.close()
 #----------------------------
 def interface():
 	print ("What do you want\n1. Retrieve some tweets\n2. View all archived tweets\n3. View the status of the authentication",
-		"\n4. Delete all tweets of a user\n5. View tweets of a user\n9. Exit the application\n")
+		"\n4. Delete all tweets of a user\n5. View tweets of a user"
+		"\n9. Exit the application\n")
 	option = input("Please enter your choice: ")
 	if option == "1":
 		user_name = input("Please provide me with a twitter handle without the @ e.g oti_ian instead of @oti_ian\n")
@@ -81,6 +85,8 @@ def tweet_get(user_name, tweet_number):
 def tweet_print_all():
 	conn = sqlite3.connect("twitter_tweets.db")
 	cursor = conn.execute("SELECT TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT from Twitter")
+	# table = cursor.fetchall()
+	# print (tabulate(table)) #pending debugging for pretty print of tables
 	print (cursor.fetchall())
 	conn.close()
 
@@ -108,8 +114,8 @@ def remove_tweets(user_name):
 def see_tweets(user_name):
 	conn = sqlite3.connect("twitter_tweets.db")
 	cursor = conn.cursor()
-	cursor.execute("SELECT * FROM Twitter WHERE TWEET_SCREEN_NAME=:who", {"who": user_name})
-	print (cursor.fetchall())
+	cursor.execute("SELECT TWEET_CONTENT FROM Twitter WHERE TWEET_SCREEN_NAME=:who", {"who": user_name})
+	print (list(cursor.fetchall()))
 	conn.close()
 
 

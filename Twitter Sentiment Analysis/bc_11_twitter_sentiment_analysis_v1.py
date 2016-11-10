@@ -2,7 +2,7 @@ import requests
 from access_credentials import credentials
 from stopwords import stopwords
 import json
-from tqdm import tqdm
+from progressbar import *
 from requests_oauthlib import OAuth1
 import sqlite3
 import itertools
@@ -97,20 +97,15 @@ def interface():
 def tweet_get(user_name, tweet_number):
 	url_tweets = "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name="+user_name+"&count="+tweet_number+""
 	tweet = requests.get(url_tweets, auth=auth)
-	file_size = int(tweet.headers["content-length"])
 	chunk = 1
-	num_bars = file_size/chunk
+	i = 0
+	bar = progressbar.ProgressBar(maxval=(len(list(tweet.iter_content())))).start()
 	with open("tweet.txt", "w") as outfile:
-		for chunk in tweet.iter_content():			
-				outfile.write(chunk.decode("utf-8"))
-				# sys.stdout.write("\r---%s" %i)
-				# sys.stdout.flush()
-				# sys.stdout.write("\b")
-		for i in tqdm(range(len(list(tweet.iter_content())))):
-			# for chunk in tweet.iter_content():
-			# 	outfile.write(chunk.decode("utf-8"))
-			sleep(0.000001)
-				
+		for chunk in tweet.iter_content():		
+			outfile.write(chunk.decode("utf-8"))
+			bar.update(i)
+			i += 1	
+	bar.finish()
 
 	with open("tweet.txt") as output_file:
 			data = output_file.read()

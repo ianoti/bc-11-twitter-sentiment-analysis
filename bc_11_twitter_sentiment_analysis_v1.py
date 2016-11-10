@@ -5,6 +5,7 @@ import json
 from requests_oauthlib import OAuth1
 import sqlite3
 import itertools
+import sys
 
 #----------------------
 # The authentication tokens are handled here
@@ -30,7 +31,7 @@ conn.close()
 # This function holds the user interface for interaction with the program
 #----------------------------
 def interface():
-	print ("What do you want\n1. Retrieve some tweets\n2. View all archived tweets\n3. View the status of the authentication",
+	print ("\nWhat do you want\n1. Retrieve some tweets\n2. View all archived tweets\n3. View the status of the authentication",
 		"\n4. Delete all tweets of a user\n5. View tweets of a user\n6. Count words in tweets of a user"
 		"\n9. Exit the application\n")
 	option = input("Please enter your choice: ")
@@ -80,18 +81,21 @@ def interface():
 def tweet_get(user_name, tweet_number):
 	url_tweets = "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name="+user_name+"&count="+tweet_number+""
 	tweet = requests.get(url_tweets, auth=auth)
-	print(tweet.headers)
+	# print(tweet.headers)
 	file_size = int(tweet.headers["content-length"])
 	chunk = 1
 	num_bars = file_size/chunk
 	# bar = progressbar.ProgressBar(maxval=num_bars).start()
 	i = 0
 	print("fetching tweets")
-	print(num_bars)
-
+	# print(num_bars)
+	
 	with open("tweet.txt", "w") as outfile:
 		for chunk in tweet.iter_content():
-			outfile.write(chunk.decode("utf-8"))			
+			sys.stdout.write("\r---------")
+			outfile.write(chunk.decode("utf-8"))
+			sys.stdout.write("\b")
+			sys.stdout.flush()	
 			# bar.update(i)
 			# i += 1
 			# bar.finish()

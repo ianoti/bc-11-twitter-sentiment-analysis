@@ -2,10 +2,12 @@ import requests
 import bc_11_access_credentials
 from bc_11_stopwords import stopwords
 import json
+import progressbar
 from requests_oauthlib import OAuth1
 import sqlite3
 import itertools
 import sys
+import click
 
 #----------------------
 # The authentication tokens are handled here
@@ -81,24 +83,29 @@ def interface():
 def tweet_get(user_name, tweet_number):
 	url_tweets = "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name="+user_name+"&count="+tweet_number+""
 	tweet = requests.get(url_tweets, auth=auth)
-	# print(tweet.headers)
+	print(tweet.headers)
 	file_size = int(tweet.headers["content-length"])
 	chunk = 1
 	num_bars = file_size/chunk
-	# bar = progressbar.ProgressBar(maxval=num_bars).start()
-	i = 0
-	print("fetching tweets")
+	i = 1
+	# bar = progressbar.ProgressBar(maxval=num_bars*10).start()
+	# i = 0
+	# print("fetching tweets")
 	# print(num_bars)
-	
+	# with click.progressbar(range(int(num_bars**2))):
 	with open("tweet.txt", "w") as outfile:
 		for chunk in tweet.iter_content():
-			sys.stdout.write("\r---------")
+			# sys.stdout.write("\r---------")
+			# sys.stdout.flush()
 			outfile.write(chunk.decode("utf-8"))
-			sys.stdout.write("\b")
-			sys.stdout.flush()	
+			# sys.stdout.write("\b")
+			# sys.stdout.flush()	
 			# bar.update(i)
-			# i += 1
-			# bar.finish()
+			i += 1
+			sys.stdout.write("\r---%s" %i)
+			sys.stdout.flush()
+			sys.stdout.write("\b")
+	# bar.finish()
 
 	with open("tweet.txt") as output_file:
 			data = output_file.read()
@@ -128,7 +135,6 @@ def tweet_print_all():
 	# print (tabulate(table)) #pending debugging for pretty print of tables
 	for i in range(0,len(table)):
 		print(table[i])
-	print(type(table))
 	conn.close()
 
 #------------------------------

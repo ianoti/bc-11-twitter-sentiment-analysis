@@ -1,20 +1,22 @@
 import requests
-import bc_11_access_credentials
-from bc_11_stopwords import stopwords
+from access_credentials import credentials
+from stopwords import stopwords
 import json
-import progressbar
+from tqdm import tqdm
 from requests_oauthlib import OAuth1
 import sqlite3
 import itertools
 import sys
-import click
+import sentiment_analysis
+from time import sleep
+from tabulate import tabulate
 
 #----------------------
 # The authentication tokens are handled here
 #-----------------------
 
-auth = OAuth1(bc_11_access_credentials.credentials["consumer_key"], bc_11_access_credentials.credentials["consumer_secret"],
-				bc_11_access_credentials.credentials["access_token"], bc_11_access_credentials.credentials["access_token_secret"])
+auth = OAuth1(credentials["consumer_key"], credentials["consumer_secret"],
+				credentials["access_token"], credentials["access_token_secret"])
 
 #--------------------------
 # The database is created here using sqlite3
@@ -34,7 +36,7 @@ conn.close()
 #----------------------------
 def interface():
 	print ("\nWhat do you want\n1. Retrieve some tweets\n2. View all archived tweets\n3. View the status of the authentication",
-		"\n4. Delete all tweets of a user\n5. View tweets of a user\n6. Count words in tweets of a user"
+		"\n4. Delete all tweets of a user\n5. View tone of tweets of user\n6. Count words in tweets of a user"
 		"\n9. Exit the application\n")
 	option = input("Please enter your choice: ")
 	if option == "1":
@@ -59,7 +61,15 @@ def interface():
 	elif option == "5":
 		user_name = input("give the twitter handle of the user whose tweets you want to view\n")
 		text_of_tweets = see_tweets(user_name)
-		print(text_of_tweets)
+		#-------------------------------------------------------------
+		emotion_raw = sentiment_analysis.emotion_check(text_of_tweets)
+		emotion_json = json.loads(emotion_raw)
+		s_emotion = emotion_json["docEmotions"]
+		aux = [(key, s_emotion[key]) for key in s_emotion]
+		aux.sort()
+		aux.reverse()
+		print(tabulate(aux, headers=["emotions","probability of emotion in tweet"], tablefmt = "fancy_grid"))
+		
 		interface()
 
 	elif option == "6":
@@ -83,29 +93,20 @@ def interface():
 def tweet_get(user_name, tweet_number):
 	url_tweets = "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name="+user_name+"&count="+tweet_number+""
 	tweet = requests.get(url_tweets, auth=auth)
-	print(tweet.headers)
 	file_size = int(tweet.headers["content-length"])
 	chunk = 1
 	num_bars = file_size/chunk
-	i = 1
-	# bar = progressbar.ProgressBar(maxval=num_bars*10).start()
-	# i = 0
-	# print("fetching tweets")
-	# print(num_bars)
-	# with click.progressbar(range(int(num_bars**2))):
 	with open("tweet.txt", "w") as outfile:
-		for chunk in tweet.iter_content():
-			# sys.stdout.write("\r---------")
-			# sys.stdout.flush()
-			outfile.write(chunk.decode("utf-8"))
-			# sys.stdout.write("\b")
-			# sys.stdout.flush()	
-			# bar.update(i)
-			i += 1
-			sys.stdout.write("\r---%s" %i)
-			sys.stdout.flush()
-			sys.stdout.write("\b")
-	# bar.finish()
+		for chunk in tweet.iter_content():			
+				outfile.write(chunk.decode("utf-8"))
+				# sys.stdout.write("\r---%s" %i)
+				# sys.stdout.flush()
+				# sys.stdout.write("\b")
+		for i in tqdm(range(len(list(tweet.iter_content())))):
+			# for chunk in tweet.iter_content():
+			# 	outfile.write(chunk.decode("utf-8"))
+			sleep(0.000001)
+				
 
 	with open("tweet.txt") as output_file:
 			data = output_file.read()

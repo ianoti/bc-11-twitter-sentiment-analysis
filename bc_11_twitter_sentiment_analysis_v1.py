@@ -35,9 +35,9 @@ conn.close()
 # This function holds the user interface for interaction with the program
 #----------------------------
 def interface():
-	print ("\nWhat do you want\n1. Retrieve some tweets\n2. View all archived tweets\n3. View the status of the authentication",
+	print ("\nWhat do you want\n1. Retrieve some tweets\n2. View saved users in system\n3. View the status of the authentication",
 		"\n4. Delete all tweets of a user\n5. View tone of tweets of user\n6. Count words in tweets of a user"
-		"\n9. Exit the application\n")
+		"\n7. Perform sentiment analysis on tweets of user\n9. Exit the application\n")
 	option = input("Please enter your choice: ")
 	if option == "1":
 		user_name = input("Please provide me with a twitter handle without the @ e.g oti_ian instead of @oti_ian\n")
@@ -59,30 +59,34 @@ def interface():
 		interface()
 
 	elif option == "5":
-		user_name = input("give the twitter handle of the user whose tweets you want to view\n")
+		user_name = input("give the twitter handle of the user whose tweets you want to view emotions of\n")
 		text_of_tweets = see_tweets(user_name)
-		#-------------------------------------------------------------
+		
 		emotion_raw = sentiment_analysis.emotion_check(text_of_tweets)
 		emotion_json = json.loads(emotion_raw)
-		s_emotion = emotion_json["docEmotions"]
-		aux = [(key, s_emotion[key]) for key in s_emotion]
-		aux.sort()
-		aux.reverse()
-		print(tabulate(aux, headers=["emotions","probability of emotion in tweet"], tablefmt = "fancy_grid"))
+		tweet_emotion = emotion_json["docEmotions"]
+		formatted_view = sort(tweet_emotion)
+		print(tabulate(formatted_view, headers=["emotions","probability of emotion in tweet"], tablefmt = "fancy_grid"))
 		
 		interface()
 
 	elif option == "6":
 		user_name = input("give the twitter handle of the user whose tweets you want to word count\n")
 		tweet_word_list_count = tweet_word_count(user_name)
-		# print(tweet_word_list_count) # the tweets have been broken up into a list of words with punctuations eliminated and stop words removed
-		
-		aux = [(tweet_word_list_count[key], key) for key in tweet_word_list_count]
-		aux.sort()
-		aux.reverse()
-		print(aux)
+		formatted_view = sort_word_freq(tweet_word_list_count)
+		print(tabulate(formatted_view, headers=["word frequency", "word"], tablefmt = "fancy_grid"))
 		interface()
-		
+
+	elif option == "7":
+		user_name = input("give the twitter handle of the user whose tweets you want to view sentiment of\n")
+		text_of_tweets = see_tweets(user_name)
+		sentiment_raw = sentiment_analysis.tweet_sentiment(text_of_tweets)
+		sentiment_json = json.loads(sentiment_raw)
+		sentiment = sentiment_json["docSentiment"]
+		formatted_view = sort(sentiment)
+		print(tabulate(formatted_view, headers=["Sentiment measures", "sentiment score", "sentiment type"], tablefmt = "fancy_grid"))
+		interface()
+
 	elif option == "9":
 		print("The program has closed, Bye Bye")
 		exit()
@@ -110,7 +114,7 @@ def tweet_get(user_name, tweet_number):
 
 	with open("tweet.txt") as output_file:
 			data = output_file.read()
-#------------------------------------------------------------------------------
+
 	tweet_json = json.loads(data)
 
 	with open("tweet.json", "w") as json_file:
@@ -131,11 +135,9 @@ def tweet_get(user_name, tweet_number):
 #-------------------------------------
 def tweet_print_all():
 	conn = sqlite3.connect("twitter_tweets.db")
-	cursor = conn.execute("SELECT TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT from Twitter")
+	cursor = conn.execute("SELECT DISTINCT TWEET_SCREEN_NAME from Twitter ORDER BY TWEET_SCREEN_NAME")
 	table = cursor.fetchall()
-	# print (tabulate(table)) #pending debugging for pretty print of tables
-	for i in range(0,len(table)):
-		print(table[i])
+	print (tabulate(table, headers=["Saved Users"], tablefmt="fancy_grid")) #pending debugging for pretty print of tables
 	conn.close()
 
 #------------------------------
@@ -199,6 +201,21 @@ def removeNonAlphaNum(text_of_tweets_normalised):
 def remove_stop_words(tweet_words, stopwords):
 	individual_words = tweet_words.split()
 	return [w for w in individual_words if not (w in stopwords)]
+
+#-------------------------------------
+# This pair of  functions accepts a dictionary or list and sorts the keys
+# the function is called depending on whether sorting is done by key or value
+#--------------------------------------
+def sort(some_list):
+	aux = [(key, some_list[key]) for key in some_list]
+	aux.sort()
+	aux.reverse()
+	return aux
+def sort_word_freq(some_list):
+	aux = [(some_list[key], key) for key in some_list]
+	aux.sort()
+	aux.reverse()
+	return aux
 #---------------------
 # The User interface is initialised
 #----------------------

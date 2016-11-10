@@ -19,6 +19,12 @@ def emotion_check(text):
 		),
 	indent = 2))
 
+def tweet_sentiment(text):
+	return (json.dumps(
+		alchemy_language.sentiment(
+			text = text),
+		indent = 2))
+
 # s_print = json.loads(s)
 # s_emotion = s_print["docEmotions"]
 

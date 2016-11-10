@@ -36,7 +36,7 @@ conn.close()
 #----------------------------
 def interface():
 	print ("\nWhat do you want\n1. Retrieve some tweets\n2. View saved users in system\n3. View the status of the authentication",
-		"\n4. Delete all tweets of a user\n5. View tone of tweets of user\n6. Count words in tweets of a user"
+		"\n4. Delete all tweets of a user\n5. View emotional tone of tweets of user\n6. Count words in tweets of a user"
 		"\n7. Perform sentiment analysis on tweets of user\n9. Exit the application\n")
 	option = input("Please enter your choice: ")
 	if option == "1":
@@ -114,25 +114,30 @@ def tweet_get(user_name, tweet_number):
 
 	with open("tweet.json", "w") as json_file:
 			json.dump(tweet_json, json_file, indent = 4, sort_keys = True)
-
-	conn = sqlite3.connect("twitter_tweets.db")
+	
 	for i in range(0,len(tweet_json)):
-		tweet_user = tweet_json[i]["user"]["screen_name"]
-		tweet_id = tweet_json[i]["id_str"]
-		tweet_text = tweet_json[i]["text"]
-		tweet_textenc = tweet_text.encode("utf-8", "ignore") #this encodes the text as utf-8 as is received from Twitter
-		conn.execute("INSERT OR IGNORE INTO Twitter(TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT) VALUES(?, ?, ?);", (tweet_id, tweet_user, tweet_textenc))
-		conn.commit()
-	conn.close()
-
+		try:
+			conn = sqlite3.connect("twitter_tweets.db")
+			tweet_user = tweet_json[i]["user"]["screen_name"]
+			tweet_id = tweet_json[i]["id_str"]
+			tweet_text = tweet_json[i]["text"]
+			tweet_textenc = tweet_text.encode("utf-8", "ignore") #this encodes the text as utf-8 as is received from Twitter
+			conn.execute("INSERT OR IGNORE INTO Twitter(TWEET_KEY, TWEET_SCREEN_NAME, TWEET_CONTENT) VALUES(?, ?, ?);", (tweet_id, tweet_user, tweet_textenc))
+			conn.commit()
+			conn.close()
+		except (KeyError,TypeError):
+			print("there's a problem with the data you provided, please confirm it's accurate and in the expected format")
+			interface()
+	
 #---------------------------------
 # This function prints out all the archived tweets in the database
 #-------------------------------------
 def tweet_print_all():
 	conn = sqlite3.connect("twitter_tweets.db")
-	cursor = conn.execute("SELECT DISTINCT TWEET_SCREEN_NAME from Twitter ORDER BY TWEET_SCREEN_NAME")
+	# cursor = conn.execute("SELECT DISTINCT TWEET_SCREEN_NAME from Twitter ORDER BY TWEET_SCREEN_NAME")
+	cursor = conn.execute("SELECT TWEET_SCREEN_NAME, COUNT(*) FROM Twitter GROUP BY TWEET_SCREEN_NAME ORDER BY TWEET_SCREEN_NAME")
 	table = cursor.fetchall()
-	print (tabulate(table, headers=["Saved Users"], tablefmt="fancy_grid")) #pending debugging for pretty print of tables
+	print (tabulate(table, headers=["Saved handles","Stored tweets"], tablefmt="fancy_grid")) #pending debugging for pretty print of tables
 	conn.close()
 
 #------------------------------

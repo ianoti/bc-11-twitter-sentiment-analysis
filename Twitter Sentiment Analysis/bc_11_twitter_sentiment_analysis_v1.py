@@ -10,6 +10,7 @@ import sys
 import sentiment_analysis
 from time import sleep
 from tabulate import tabulate
+import re
 
 #----------------------
 # The authentication tokens are handled here
@@ -35,9 +36,10 @@ conn.close()
 # This function holds the user interface for interaction with the program
 #----------------------------
 def interface():
-	print ("\nWhat do you want\n1. Retrieve some tweets\n2. View saved users in system\n3. View the status of the authentication",
-		"\n4. Delete all tweets of a user\n5. View emotional tone of tweets of user\n6. Count words in tweets of a user"
-		"\n7. Perform sentiment analysis on tweets of user\n9. Exit the application\n")
+	print ("\nWhat do you want\n1. Retrieve some tweets\n2. View saved users in system",
+		"\n3. View the status of the authentication keys\n4. Delete all tweets of a user",
+		"\n5. View emotional tone of tweets of user\n6. Count words in tweets of a user",
+		"\n7. Perform sentiment analysis on tweets of user\n8. Exit the application\n")
 	option = input("Please enter your choice: ")
 	if option == "1":
 		user_name = input("Please provide me with a twitter handle without the @ e.g oti_ian instead of @oti_ian\n")
@@ -66,7 +68,7 @@ def interface():
 		emotion_json = json.loads(emotion_raw)
 		tweet_emotion = emotion_json["docEmotions"]
 		formatted_view = sort(tweet_emotion)
-		print(tabulate(formatted_view, headers=["emotions","probability of emotion in tweet"], tablefmt = "fancy_grid"))
+		print(tabulate(formatted_view, headers=["emotions","probability of emotion occurrence"], tablefmt = "orgtbl"))
 		
 		interface()
 
@@ -84,12 +86,16 @@ def interface():
 		sentiment_json = json.loads(sentiment_raw)
 		sentiment = sentiment_json["docSentiment"]
 		formatted_view = sort(sentiment)
-		print(tabulate(formatted_view, headers=["Sentiment measures", "sentiment score", "sentiment type"], tablefmt = "fancy_grid"))
+		print(tabulate(formatted_view, headers=["Sentiment measures", "Sentiment score", "sentiment type"], tablefmt = "fancy_grid"))
 		interface()
 
-	elif option == "9":
+	elif option == "8":
 		print("The program has closed, Bye Bye")
 		exit()
+
+	else:
+		print("I don't understand what you want, I'm limited in my choices go back and choose again")
+		interface()
 
 #--------------------------------
 # This function retrieves tweets of a specified user of a specified number of tweets
@@ -134,10 +140,9 @@ def tweet_get(user_name, tweet_number):
 #-------------------------------------
 def tweet_print_all():
 	conn = sqlite3.connect("twitter_tweets.db")
-	# cursor = conn.execute("SELECT DISTINCT TWEET_SCREEN_NAME from Twitter ORDER BY TWEET_SCREEN_NAME")
 	cursor = conn.execute("SELECT TWEET_SCREEN_NAME, COUNT(*) FROM Twitter GROUP BY TWEET_SCREEN_NAME ORDER BY TWEET_SCREEN_NAME")
 	table = cursor.fetchall()
-	print (tabulate(table, headers=["Saved handles","Stored tweets"], tablefmt="fancy_grid")) #pending debugging for pretty print of tables
+	print (tabulate(table, headers=["Saved handles","Stored tweets"], tablefmt="fancy_grid"))
 	conn.close()
 
 #------------------------------
@@ -146,7 +151,9 @@ def tweet_print_all():
 def authenticate_token():
 	url_authenticate = "https://api.twitter.com/1.1/account/verify_credentials.json"
 	auth_status = requests.get(url_authenticate, auth=auth)
-	print ("The HTTP response code for the authorisation check is:",auth_status.status_code)
+	if auth_status.status_code == 200:
+		print ("The access codes are still valid")
+	
 
 #---------------------------
 # this function deletes archived tweets matching a user name
@@ -189,10 +196,9 @@ def tweet_word_count(user_name):
 	return count_of_words_in_tweet
 
 #----------------------------------
-# this function will clean up the tweets to remove punctuation and replace with whitespace
+# this function will clean up the tweets to remove arbitrary punctuation and replace with whitespace
 #-----------------------------------
 def removeNonAlphaNum(text_of_tweets_normalised):
-	import re
 	return re.sub("[, ( ) ]", " ", text_of_tweets_normalised)
 
 #--------------------------------
@@ -217,14 +223,8 @@ def sort_word_freq(some_list):
 	aux.reverse()
 	return aux
 #---------------------
-# The User interface is initialised
+# The User interface is initialised and program
+# begins execution
 #----------------------
 
 interface()
-
-#----------------------
-# This section holds miscellaneous comments
-# That help with keeping some code handy
-#------------------------
-# print(json.dumps(tweet_json, sort_keys=True,
-		# indent = 4, separators=(",",":"))) #this prints the formatted JSON response from Twitter API

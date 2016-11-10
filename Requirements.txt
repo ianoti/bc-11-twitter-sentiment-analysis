@@ -1,0 +1,14 @@
+
+requires python version 3.5.2
+
+extra modules required:
+	future==0.16.0
+	oauthlib==2.0.0
+	progressbar==2.3.dev0
+	requests==2.11.1
+	requests-oauthlib==0.7.0
+	stop-words==2015.2.23.1
+	tabulate==0.7.7
+	watson-developer-cloud==0.22.0
+these can be installed by running <python -m pip install {module_name}>
+from the command line.

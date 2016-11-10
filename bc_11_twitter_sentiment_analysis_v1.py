@@ -62,7 +62,7 @@ def interface():
 	elif option == "6":
 		user_name = input("give the twitter handle of the user whose tweets you want to word count\n")
 		tweet_word_list_count = tweet_word_count(user_name)
-		print(tweet_word_list_count) # the tweets have been broken up into a list of words with punctuations eliminated and stop words removed
+		# print(tweet_word_list_count) # the tweets have been broken up into a list of words with punctuations eliminated and stop words removed
 		
 		aux = [(tweet_word_list_count[key], key) for key in tweet_word_list_count]
 		aux.sort()
@@ -80,7 +80,30 @@ def interface():
 def tweet_get(user_name, tweet_number):
 	url_tweets = "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name="+user_name+"&count="+tweet_number+""
 	tweet = requests.get(url_tweets, auth=auth)
-	tweet_json = tweet.json()
+	print(tweet.headers)
+	file_size = int(tweet.headers["content-length"])
+	chunk = 1
+	num_bars = file_size/chunk
+	# bar = progressbar.ProgressBar(maxval=num_bars).start()
+	i = 0
+	print("fetching tweets")
+	print(num_bars)
+
+	with open("tweet.txt", "w") as outfile:
+		for chunk in tweet.iter_content():
+			outfile.write(chunk.decode("utf-8"))			
+			# bar.update(i)
+			# i += 1
+			# bar.finish()
+
+	with open("tweet.txt") as output_file:
+			data = output_file.read()
+#------------------------------------------------------------------------------
+	tweet_json = json.loads(data)
+
+	with open("tweet.json", "w") as json_file:
+			json.dump(tweet_json, json_file, indent = 4, sort_keys = True)
+
 	conn = sqlite3.connect("twitter_tweets.db")
 	for i in range(0,len(tweet_json)):
 		tweet_user = tweet_json[i]["user"]["screen_name"]

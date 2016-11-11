@@ -13,16 +13,16 @@ from tabulate import tabulate
 import re
 from pyfiglet import Figlet
 
-#----------------------
+'''
 # The authentication tokens are handled here
-#-----------------------
+'''
 
 auth = OAuth1(credentials["consumer_key"], credentials["consumer_secret"],
 				credentials["access_token"], credentials["access_token_secret"])
 
-#--------------------------
+'''
 # The database is created here using sqlite3
-#--------------------------
+'''
 
 conn = sqlite3.connect("twitter_tweets.db")
 conn.execute('''CREATE TABLE IF NOT EXISTS Twitter
@@ -33,9 +33,9 @@ conn.execute('''CREATE TABLE IF NOT EXISTS Twitter
 			);''')
 conn.close()
 
-#----------------------------
+'''
 # This function holds the user interface for interaction with the program
-#----------------------------
+'''
 def interface():
 	f = Figlet(font="slant")
 	print(f.renderText("Twitter Semantic"))
@@ -44,7 +44,8 @@ def interface():
 		"\n1. Retrieve some tweets\n2. View saved users in system",
 		"\n3. View the status of the authentication keys\n4. Delete all tweets of a user",
 		"\n5. View emotional tone of tweets of user\n6. Count words in tweets of a user",
-		"\n7. Perform sentiment analysis on tweets of user\n8. Exit the application\n")
+		"\n7. Perform sentiment analysis on tweets of user\n8. Exit the application\n",
+		"\n9. (presentation purpose only) diplay user tweets as text\n")
 	option = input("Please enter your choice: ")
 	if option == "1":
 		user_name = input("Please provide me with a twitter handle without the @ e.g oti_ian instead of @oti_ian\n")
@@ -98,18 +99,27 @@ def interface():
 		print("The program has closed, Bye Bye")
 		exit()
 
+	elif option == "9":
+		user_name = input("give the twitter handle of the user whose tweets you want to view as text\n")
+		text_of_tweets = see_tweets(user_name)
+		print("the tweets of:", user_name, "are:", text_of_tweets)
+		interface()
+
 	else:
 		print("I don't understand what you want, I'm limited in my choices go back and choose again")
 		interface()
 
-#--------------------------------
-# This function retrieves tweets of a specified user of a specified number of tweets
-#--------------------------------
+'''
+#This function retrieves tweets of a specified user of a specified number of tweets
+'''
 def tweet_get(user_name, tweet_number):
 	url_tweets = "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name="+user_name+"&count="+tweet_number+""
 	tweet = requests.get(url_tweets, auth=auth)
 	chunk = 1
 	i = 0
+	'''
+	# the progressbar uses iter_content() to calculate how long to return
+	'''
 	bar = progressbar.ProgressBar(maxval=(len(list(tweet.iter_content())))).start()
 	with open("tweet.txt", "w") as outfile:
 		for chunk in tweet.iter_content():		
@@ -140,9 +150,9 @@ def tweet_get(user_name, tweet_number):
 			print("there's a problem with the data you provided, please confirm it's accurate and in the expected format")
 			interface()
 	
-#---------------------------------
+'''
 # This function prints out all the archived tweets in the database
-#-------------------------------------
+'''
 def tweet_print_all():
 	conn = sqlite3.connect("twitter_tweets.db")
 	cursor = conn.execute("SELECT TWEET_SCREEN_NAME, COUNT(*) FROM Twitter GROUP BY TWEET_SCREEN_NAME ORDER BY TWEET_SCREEN_NAME")
@@ -150,9 +160,9 @@ def tweet_print_all():
 	print (tabulate(table, headers=["Saved handles","Stored tweets"], tablefmt="fancy_grid"))
 	conn.close()
 
-#------------------------------
+'''
 # This function confirms the authentication of the access tokens
-#------------------------------
+'''
 def authenticate_token():
 	url_authenticate = "https://api.twitter.com/1.1/account/verify_credentials.json"
 	auth_status = requests.get(url_authenticate, auth=auth)
@@ -160,9 +170,9 @@ def authenticate_token():
 		print ("The access codes are still valid")
 	
 
-#---------------------------
+'''
 # this function deletes archived tweets matching a user name
-#---------------------------
+'''
 def remove_tweets(user_name):
 	conn = sqlite3.connect("twitter_tweets.db")
 	cursor = conn.cursor()
@@ -170,9 +180,9 @@ def remove_tweets(user_name):
 	conn.commit()
 	conn.close()
 
-#---------------------------
+'''
 # this function will return the tweets saved from a particular user
-#---------------------------
+'''
 def see_tweets(user_name):
 	conn = sqlite3.connect("twitter_tweets.db")
 	cursor = conn.cursor()
@@ -184,9 +194,9 @@ def see_tweets(user_name):
 	conn.close()
 	return str(user_tweet_english)
 
-#-------------------------------
+'''
 # this function will count the number of words in the tweet
-#-------------------------------
+'''
 def tweet_word_count(user_name):
 	text_of_tweets = see_tweets(user_name)
 	text_of_tweets_normalised = text_of_tweets.lower()
@@ -200,23 +210,23 @@ def tweet_word_count(user_name):
 			count_of_words_in_tweet[some_text] = 1
 	return count_of_words_in_tweet
 
-#----------------------------------
+'''
 # this function will clean up the tweets to remove arbitrary punctuation and replace with whitespace
-#-----------------------------------
+'''
 def removeNonAlphaNum(text_of_tweets_normalised):
 	return re.sub("[, ( ) ]", " ", text_of_tweets_normalised)
 
-#--------------------------------
+'''
 # This function removes the stop words using a list stored in separate file
-#--------------------------------
+'''
 def remove_stop_words(tweet_words, stopwords):
 	individual_words = tweet_words.split()
 	return [w for w in individual_words if not (w in stopwords)]
 
-#-------------------------------------
+'''
 # This pair of  functions accepts a dictionary or list and sorts the keys
 # the function is called depending on whether sorting is done by key or value
-#--------------------------------------
+'''
 def sort(some_list):
 	aux = [(key, some_list[key]) for key in some_list]
 	aux.sort()
@@ -227,9 +237,9 @@ def sort_word_freq(some_list):
 	aux.sort()
 	aux.reverse()
 	return aux
-#---------------------
+'''
 # The User interface is initialised and program
 # begins execution
-#----------------------
+'''
 
 interface()

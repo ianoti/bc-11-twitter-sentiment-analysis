@@ -11,6 +11,7 @@ import sentiment_analysis
 from time import sleep
 from tabulate import tabulate
 import re
+from pyfiglet import Figlet
 
 #----------------------
 # The authentication tokens are handled here
@@ -36,6 +37,8 @@ conn.close()
 # This function holds the user interface for interaction with the program
 #----------------------------
 def interface():
+	f = Figlet(font="slant")
+	print(f.renderText("Twitter Semantic DooDa"))
 	print ("\nWhat do you want\n1. Retrieve some tweets\n2. View saved users in system",
 		"\n3. View the status of the authentication keys\n4. Delete all tweets of a user",
 		"\n5. View emotional tone of tweets of user\n6. Count words in tweets of a user",

@@ -38,8 +38,10 @@ conn.close()
 #----------------------------
 def interface():
 	f = Figlet(font="slant")
-	print(f.renderText("Twitter Semantic DooDa"))
-	print ("\nWhat do you want\n1. Retrieve some tweets\n2. View saved users in system",
+	print(f.renderText("Twitter Semantic Hmmmm"))
+	print("#"*70)
+	print ("\n------------What do you want------------------",
+		"\n1. Retrieve some tweets\n2. View saved users in system",
 		"\n3. View the status of the authentication keys\n4. Delete all tweets of a user",
 		"\n5. View emotional tone of tweets of user\n6. Count words in tweets of a user",
 		"\n7. Perform sentiment analysis on tweets of user\n8. Exit the application\n")
